@@ -8,11 +8,27 @@ export default function SignUp() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle sign up logic here
-    navigate('/dashboard');
+    try {
+      const response = await fetch('http://localhost:5000/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+      const data = await response.json();
+  
+      if (data.success) {
+        navigate('/signin'); // Redirect to sign-in page after successful signup
+      } else {
+        alert(data.message); // Show error message from server
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+    }
   };
+  
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

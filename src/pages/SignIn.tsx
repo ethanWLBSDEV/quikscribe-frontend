@@ -7,10 +7,25 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle sign in logic here
-    navigate('/dashboard');
+    try {
+      const response = await fetch('http://localhost:5000/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }), // Use email here
+      });
+      const data = await response.json();
+
+      if (data.token) {
+        localStorage.setItem('token', data.token); // Store token for later use
+        navigate('/dashboard');
+      } else {
+        alert(data.message); // Show error message from server
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+    }
   };
 
   return (
