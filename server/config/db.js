@@ -18,8 +18,11 @@ export const signin = async (req, res) => {
     try {
         const user = await findUserByEmail(email);
         if (user && await bcrypt.compare(password, user.password)) {
-            const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-            res.json({ token });
+            // Generate token
+            const token = jwt.sign({ id: user.id, email: user.email, type: user.type }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+            // Send response with token and userType
+            res.json({ token, userType: user.type });  // Include the user type here
         } else {
             res.status(400).send("Invalid credentials");
         }
@@ -27,3 +30,4 @@ export const signin = async (req, res) => {
         res.status(500).send("Error logging in user");
     }
 };
+

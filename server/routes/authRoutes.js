@@ -26,7 +26,8 @@ db.connect((err) => {
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL UNIQUE,
       email VARCHAR(255) NOT NULL UNIQUE,
-      password VARCHAR(255) NOT NULL
+      password VARCHAR(255) NOT NULL,
+      type ENUM('admin', 'customer') DEFAULT 'customer'
     );
   `;
   
@@ -41,54 +42,63 @@ db.connect((err) => {
 
 // Signup route
 router.post('/signup', async (req, res) => {
-    const { name, email, password } = req.body;
-    console.log('Signup request received:', { name, email, password });
-  
-    try {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      console.log('Password hashed:', hashedPassword);
-  
-      const query = 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)';
-      db.query(query, [name, email, hashedPassword], (err, result) => {
-        if (err) {
-          console.error('Error registering user:', err);
-          return res.status(500).json({ message: 'Error registering user' });
-        }
-        console.log('User registered successfully:', result);
-        res.status(201).json({ message: 'User registered successfully' });
-      });
-    } catch (error) {
-      console.error('Error during signup process:', error);
-      res.status(500).json({ message: 'Server error' });
-    }
-  });
-  
+  const { name, email, password } = req.body;
 
-// Signin route
-router.post('/signin', (req, res) => {
-    const { email, password } = req.body;  // Use email instead of username
-    console.log('Signin request received:', { email, password });
-    
-    const query = 'SELECT * FROM users WHERE email = ?';  // Use email in the query
-    db.query(query, [email], async (err, results) => {  // Pass email here
-      if (err || results.length === 0) {
-        console.error('Invalid credentials or error during query:', err);
-        return res.status(401).json({ message: 'Invalid credentials' });
+  // Check if the email already exists
+  const checkEmailQuery = 'SELECT * FROM users WHERE email = ?';
+  db.query(checkEmailQuery, [email], async (err, results) => {
+    if (err) {
+      console.error('Error checking email:', err);
+      return res.status(500).json({ message: 'Server error' });
+    }
+
+    if (results.length > 0) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Insert the new user into the database
+    const insertQuery = 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)';
+    db.query(insertQuery, [name, email, hashedPassword], (err, result) => {
+      if (err) {
+        console.error('Error inserting user:', err);
+        return res.status(500).json({ message: 'Error signing up. Please try again.' });
       }
-      
-      const user = results[0];
-      const isValidPassword = await bcrypt.compare(password, user.password);
-      
-      if (!isValidPassword) {
-        console.log('Invalid password for user:', email);  // Log using email
-        return res.status(401).json({ message: 'Invalid credentials' });
-      }
-  
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-      console.log('Token generated for user:', email);  // Log using email
-      res.json({ token });
+
+      // Respond with success
+      res.status(201).json({ success: true, message: 'User signed up successfully' });
     });
   });
-  
+});
+
+// Signin route for both admins and customers
+router.post('/signin', (req, res) => {
+  const { email, password } = req.body;
+  console.log('Signin request received:', { email, password });
+
+  const query = 'SELECT * FROM users WHERE email = ?';
+  db.query(query, [email], async (err, results) => {
+    if (err || results.length === 0) {
+      console.error('Invalid credentials or error during query:', err);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const user = results[0];
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      console.log('Invalid password for user:', email);
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate JWT token for both admins and customers (No admin check here)
+    const token = jwt.sign({ id: user.id, type: user.type }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    console.log('Token generated for user:', email);
+    res.json({ token });
+  });
+});
+
 
 export default router;

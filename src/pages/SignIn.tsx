@@ -9,22 +9,28 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+  
     try {
       const response = await fetch('http://localhost:5000/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }), // Use email here
+        body: JSON.stringify({ email, password }),
       });
+  
       const data = await response.json();
-
+  
       if (data.token) {
-        localStorage.setItem('token', data.token); // Store token for later use
-        navigate('/dashboard');
+        console.log('Received Token:', data.token);
+        localStorage.setItem('jwtToken', data.token);
+        const storedToken = localStorage.getItem('jwtToken');
+        console.log('Stored Token in localStorage:', storedToken);
+        navigate('/'); // Redirect to the home page/dashboard after login
       } else {
-        alert(data.message); // Show error message from server
+        alert(data.message || 'Login failed. Please try again.');
       }
     } catch (error) {
       console.error('Login error:', error);
+      alert('An error occurred while logging in. Please try again.');
     }
   };
 

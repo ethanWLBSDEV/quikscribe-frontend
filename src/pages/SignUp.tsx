@@ -10,25 +10,26 @@ export default function SignUp() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+  
     try {
       const response = await fetch('http://localhost:5000/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
+      
       const data = await response.json();
   
       if (data.success) {
         navigate('/signin'); // Redirect to sign-in page after successful signup
       } else {
-        alert(data.message); // Show error message from server
+        alert(data.message || 'Sign-up failed. Please try again.');
       }
     } catch (error) {
       console.error('Signup error:', error);
+      alert('An error occurred while signing up. Please try again.');
     }
   };
-  
-
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -113,14 +114,7 @@ export default function SignUp() {
                 className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
               />
               <label htmlFor="terms" className="ml-2 block text-sm text-gray-900">
-                I agree to the{' '}
-                <Link to="/terms" className="font-medium text-purple-600 hover:text-purple-500">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link to="/privacy" className="font-medium text-purple-600 hover:text-purple-500">
-                  Privacy Policy
-                </Link>
+                I agree to the <Link to="#" className="font-medium text-purple-600 hover:text-purple-500">terms and conditions</Link>
               </label>
             </div>
 
@@ -129,7 +123,7 @@ export default function SignUp() {
                 type="submit"
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
               >
-                Create account
+                Sign up
               </button>
             </div>
           </form>

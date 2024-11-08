@@ -1,8 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, FileAudio, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranscriptionStore } from '../store/transcriptionStore';
 import { TranscriptionService } from '../services/transcriptionService';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BuyProButton from '../components/BuyPro'
 
 export default function TranscribePage() {
@@ -18,6 +20,16 @@ export default function TranscribePage() {
     setTranscription,
     setError,
   } = useTranscriptionStore();
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if the user is logged in by checking for token/username in localStorage
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      navigate('/signin');  // Redirect to login page if no token found
+    }
+  }, [navigate]);
 
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
