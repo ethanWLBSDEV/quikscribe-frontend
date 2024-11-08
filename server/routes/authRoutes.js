@@ -76,7 +76,6 @@ router.post('/signup', async (req, res) => {
 // Signin route for both admins and customers
 router.post('/signin', (req, res) => {
   const { email, password } = req.body;
-  console.log('Signin request received:', { email, password });
 
   const query = 'SELECT * FROM users WHERE email = ?';
   db.query(query, [email], async (err, results) => {
@@ -89,16 +88,15 @@ router.post('/signin', (req, res) => {
     const isValidPassword = await bcrypt.compare(password, user.password);
     
     if (!isValidPassword) {
-      console.log('Invalid password for user:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate JWT token for both admins and customers (No admin check here)
+    // Generate JWT token and send user type in response
     const token = jwt.sign({ id: user.id, type: user.type }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    console.log('Token generated for user:', email);
-    res.json({ token });
+    res.json({ token, type: user.type });  // Include user type in response
   });
 });
+
 
 
 export default router;

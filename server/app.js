@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js'; // Add the .js extension
 import dotenv from 'dotenv';
+import adminRouter from './routes/adminRouter.js';
+
 dotenv.config();
 
 const app = express();
@@ -17,6 +19,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/auth', authRoutes);
+app.use('/admin', adminRouter);
 
 const PORT = process.env.PORT || 5000;
 

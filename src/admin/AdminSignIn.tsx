@@ -4,19 +4,19 @@ const AdminSignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);  // Loading state
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-  
+
     if (!email || !password) {
       setError('Email and Password are required.');
       return;
     }
-  
+
     setLoading(true);
-    setError(''); // Clear any previous error
-  
+    setError('');
+
     try {
       const response = await fetch('http://localhost:5000/auth/signin', {
         method: 'POST',
@@ -25,35 +25,32 @@ const AdminSignIn = () => {
         },
         body: JSON.stringify({ email, password }),
       });
-  
+
       if (response.ok) {
         const data = await response.json();
         const token = data.token;
-        localStorage.setItem('token', token); // Save the JWT token
-  
-        // Decode the token to check for admin role
-        const decoded = JSON.parse(atob(token.split('.')[1])); // Decode the token
-        if (decoded.type !== 'admin') {  // Check if the user is NOT an admin
+        const type = data.type;  // Get type from response
+
+        localStorage.setItem('token', token);
+
+        if (type !== 'admin') {
           alert('Access denied. Admins only.');
-          localStorage.removeItem('token'); // Remove the token for non-admin users
-          return; // Stop the process if the user is not an admin
+          localStorage.removeItem('token');
+          return;
         }
-  
-        alert('Sign In Successful!');  // Success alert for admin users
-        window.location.href = '/admin/dashboard';  // Redirect to Admin Dashboard
+
+        alert('Sign In Successful!');
+        window.location.href = '/admin/dashboard';
       } else {
         const errorData = await response.json();
         setError(errorData.message || 'An error occurred while signing in.');
-        alert(errorData.message || 'An error occurred while signing in.');  // Show error alert
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
-      alert('An unexpected error occurred. Please try again.');  // Show error alert on unexpected errors
     } finally {
-      setLoading(false);  // Stop loading spinner
+      setLoading(false);
     }
   };
-  
 
   return (
     <div style={{ padding: '20px', maxWidth: '400px', margin: 'auto' }}>
@@ -86,19 +83,19 @@ const AdminSignIn = () => {
             {error}
           </div>
         )}
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           style={{
-            width: '100%', 
-            padding: '10px', 
-            backgroundColor: '#4CAF50', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '5px', 
-            fontSize: '16px', 
-            cursor: loading ? 'not-allowed' : 'pointer'
+            width: '100%',
+            padding: '10px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            fontSize: '16px',
+            cursor: loading ? 'not-allowed' : 'pointer',
           }}
-          disabled={loading}  // Disable button when loading
+          disabled={loading}
         >
           {loading ? 'Signing In...' : 'Sign In'}
         </button>
