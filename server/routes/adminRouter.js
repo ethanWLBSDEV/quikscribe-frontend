@@ -1,14 +1,17 @@
 import express from 'express';
 import mysql from 'mysql2';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '../.env' }); // Adjust the path based on the location of the .env file
 
 const adminRouter = express.Router();
 
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'quikscribe-username',
-  password: 'new_password',
-  database: 'quikscribe'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
 // Middleware to verify admin JWT
@@ -37,17 +40,36 @@ adminRouter.get('/users', authenticateAdmin, (req, res) => {
   });
 });
 
-// Update user type to admin
+// Update user type
 adminRouter.put('/users/:id', authenticateAdmin, (req, res) => {
   const { id } = req.params;
-  const updateQuery = 'UPDATE users SET type = ? WHERE id = ?';
-  db.query(updateQuery, ['admin', id], (err, result) => {
-    if (err) {
-      console.error('Error updating user type:', err);
-      return res.status(500).json({ message: 'Error updating user type' });
+  const { type } = req.body;
+
+  // Ensure admins cannot demote themselves or other admins
+  const getUserQuery = 'SELECT * FROM users WHERE id = ?';
+  db.query(getUserQuery, [id], (err, results) => {
+    if (err || results.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
     }
-    res.json({ message: 'User promoted to admin' });
+
+    const targetUser = results[0];
+    if (targetUser.type === 'admin' && type !== 'admin') {
+      return res.status(403).json({ message: 'Cannot demote other admins' });
+    }
+    if (targetUser.id === req.user.id) {
+      return res.status(403).json({ message: 'Admins cannot demote themselves' });
+    }
+
+    const updateQuery = 'UPDATE users SET type = ? WHERE id = ?';
+    db.query(updateQuery, [type, id], (err) => {
+      if (err) {
+        console.error('Error updating user type:', err);
+        return res.status(500).json({ message: 'Error updating user type' });
+      }
+      res.json({ message: `User updated to ${type}` });
+    });
   });
 });
+
 
 export default adminRouter;

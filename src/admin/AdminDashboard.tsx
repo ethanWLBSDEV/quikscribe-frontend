@@ -4,7 +4,7 @@ interface User {
   id: number;
   name: string;
   email: string;
-  type: 'admin' | 'customer';
+  type: 'admin' | 'customer' | 'free' | 'pro' | 'company';
 }
 
 const AdminDashboard: React.FC = () => {
@@ -46,7 +46,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const changeUserType = async (userId: number) => {
+  const changeUserType = async (userId: number, newType: User['type']) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/admin/users/${userId}`, {
@@ -55,17 +55,24 @@ const AdminDashboard: React.FC = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ type: 'admin' }),
+        body: JSON.stringify({ type: newType }),
       });
       if (response.ok) {
-        setUsers(users.map(user => user.id === userId ? { ...user, type: 'admin' } : user));
+        setUsers((prevUsers) => 
+          prevUsers.map(user => 
+            user.id === userId ? { ...user, type: newType } : user
+          )
+        );
       } else {
-        setError('Failed to update user type');
+        const errorData = await response.json();
+        setError(errorData.message || 'Failed to update user type');
       }
     } catch (error) {
       setError('Failed to update user type');
     }
   };
+  
+  
 
   if (loading) {
     return <div className="text-center mt-20 text-lg">Loading...</div>;
@@ -97,13 +104,20 @@ const AdminDashboard: React.FC = () => {
                   {user.type}
                 </td>
                 <td className="px-6 py-4">
-                  {user.type === 'customer' && (
-                    <button
-                      onClick={() => changeUserType(user.id)}
-                      className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
+                  {user.type !== 'admin' ? (
+                    <select
+                      className="border border-gray-300 rounded-lg py-2 px-4"
+                      value={user.type}
+                      onChange={(e) => changeUserType(user.id, e.target.value as User['type'])}
                     >
-                      Promote to Admin
-                    </button>
+                      <option value="customer">Customer</option>
+                      <option value="free">Free</option>
+                      <option value="pro">Pro</option>
+                      <option value="company">Company</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  ) : (
+                    <span className="text-gray-500">Admin</span>
                   )}
                 </td>
               </tr>

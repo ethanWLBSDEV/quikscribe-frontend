@@ -2,15 +2,18 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import mysql from 'mysql2';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: '../.env' }); // Adjust the path based on the location of the .env file
 
 const router = express.Router();
 
 // Set up database connection
 const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'quikscribe-username',
-  password: 'new_password',
-  database: 'quikscribe'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
 db.connect((err) => {
@@ -27,7 +30,7 @@ db.connect((err) => {
       name VARCHAR(255) NOT NULL UNIQUE,
       email VARCHAR(255) NOT NULL UNIQUE,
       password VARCHAR(255) NOT NULL,
-      type ENUM('admin', 'customer') DEFAULT 'customer'
+      type ENUM('admin', 'customer', 'free', 'pro', 'company') DEFAULT 'customer'
     );
   `;
   
