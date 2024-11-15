@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, AlertCircle, Loader2, XCircle } from 'lucide-react';
 import { useTranscriptionStore } from '../store/transcriptionStore';
 import { TranscriptionService } from '../services/transcriptionService';
 import { useNavigate } from 'react-router-dom';
@@ -24,31 +24,39 @@ export default function TranscribePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if the user is logged in by checking for token/username in localStorage
     const token = localStorage.getItem('jwtToken');
     if (!token) {
-      navigate('/signin'); // Redirect to login page if no token found
+      navigate('/signin');
     }
   }, [navigate]);
 
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file) return;
 
-    setFile(file);
-    setUploadedFileName(file.name);
+      setFile(file);
+      setUploadedFileName(file.name);
+      setStatus('idle');
+      setError(null);
+    },
+    [setFile, setStatus, setError]
+  );
+
+  const removeUploadedFile = () => {
+    setFile(null);
+    setUploadedFileName(null);
     setStatus('idle');
     setError(null);
-  }, [setFile, setStatus, setError]);
+  };
 
   const handleTranscribeNow = async () => {
     if (file) {
       setStatus('processing');
 
       try {
-        // Upload the file before transcription
         await uploadFile(file);
 
         const transcriptionService = TranscriptionService.getInstance();
@@ -70,7 +78,7 @@ export default function TranscribePage() {
       'audio/*': ['.mp3', '.wav', '.m4a'],
       'video/*': ['.mp4', '.mov'],
     },
-    maxSize: 2 * 1024 * 1024 * 1024, // 2GB
+    maxSize: 2 * 1024 * 1024 * 1024,
     multiple: false,
   });
 
@@ -84,9 +92,12 @@ export default function TranscribePage() {
           </p>
         </div>
         {uploadedFileName && (
-          <p className="mt-8 text-gray-800 font-semibold text-center">
-            {uploadedFileName}
-          </p>
+          <div className="mt-8 text-gray-800 font-semibold text-center flex justify-center items-center space-x-4">
+            <p>{uploadedFileName}</p>
+            <button onClick={removeUploadedFile} className="text-red-500 hover:text-red-700">
+              <XCircle className="h-6 w-6" />
+            </button>
+          </div>
         )}
 
         <div className="mt-12">
@@ -106,7 +117,7 @@ export default function TranscribePage() {
               </p>
             </div>
           )}
-          {status === 'idle' && (
+          {status === 'idle' && uploadedFileName && (
             <div className="text-center mt-20 flex justify-center">
               <button
                 onClick={handleTranscribeNow}
@@ -135,7 +146,7 @@ export default function TranscribePage() {
               <BuyProButton />
             </div>
           )}
-          
+
           {status === 'completed' && transcription && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-4">Transcription Result</h2>
@@ -145,8 +156,7 @@ export default function TranscribePage() {
               <div className="mt-4 flex justify-end space-x-4">
                 <button
                   onClick={() => {
-                    setStatus('idle');
-                    setFile(null);
+                    removeUploadedFile();
                     setTranscription(null);
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
