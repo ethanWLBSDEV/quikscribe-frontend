@@ -34,7 +34,7 @@ export default function Hero() {
 
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <button
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/transcribe')}
                 className="rounded-lg bg-purple-600 px-8 py-3 text-lg font-semibold text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
               >
                 Start Transcribing

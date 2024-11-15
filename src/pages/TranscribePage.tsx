@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, AlertCircle, Loader2 } from 'lucide-react';
 import { useTranscriptionStore } from '../store/transcriptionStore';
 import { TranscriptionService } from '../services/transcriptionService';
-import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BuyProButton from '../components/BuyPro'
+import BuyProButton from '../components/BuyPro';
+import { uploadFile } from '../services/fileUploadService';
 
 export default function TranscribePage() {
   const {
@@ -27,13 +27,13 @@ export default function TranscribePage() {
     // Check if the user is logged in by checking for token/username in localStorage
     const token = localStorage.getItem('jwtToken');
     if (!token) {
-      navigate('/signin');  // Redirect to login page if no token found
+      navigate('/signin'); // Redirect to login page if no token found
     }
   }, [navigate]);
 
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
@@ -41,27 +41,31 @@ export default function TranscribePage() {
     setUploadedFileName(file.name);
     setStatus('idle');
     setError(null);
-
-  }, []);
+  }, [setFile, setStatus, setError]);
 
   const handleTranscribeNow = async () => {
     if (file) {
       setStatus('processing');
-      const transcriptionService = TranscriptionService.getInstance();
+
       try {
+        // Upload the file before transcription
+        await uploadFile(file);
+
+        const transcriptionService = TranscriptionService.getInstance();
         const audioData = await transcriptionService.convertToWav(file);
         const text = await transcriptionService.transcribe(audioData, setProgress);
+
         setTranscription(text);
         setStatus('completed');
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to transcribe file');
+        setError(err instanceof Error ? err.message : 'Failed to process file');
         setStatus('error');
       }
     }
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop, // Ensure this function is correctly defined
+    onDrop,
     accept: {
       'audio/*': ['.mp3', '.wav', '.m4a'],
       'video/*': ['.mp4', '.mov'],
@@ -79,12 +83,11 @@ export default function TranscribePage() {
             Upload your audio or video file to get started
           </p>
         </div>
-        {uploadedFileName && ( // Render the uploaded file name
+        {uploadedFileName && (
           <p className="mt-8 text-gray-800 font-semibold text-center">
             {uploadedFileName}
           </p>
         )}
-
 
         <div className="mt-12">
           {!uploadedFileName && (
@@ -128,11 +131,11 @@ export default function TranscribePage() {
           )}
 
           {status === 'completed' && (
-            <div className='flex justify-end space-x-4 mb-4'>
+            <div className="flex justify-end space-x-4 mb-4">
               <BuyProButton />
             </div>
-          )
-          }
+          )}
+          
           {status === 'completed' && transcription && (
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-4">Transcription Result</h2>

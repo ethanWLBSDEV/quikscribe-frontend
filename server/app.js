@@ -3,8 +3,10 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import dotenv from 'dotenv';
 import adminRouter from './routes/adminRouter.js';
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { EC2Client, StartInstancesCommand, StopInstancesCommand } from '@aws-sdk/client-ec2';
+import uploadRoutes from './routes/uploadRoutes.js';
+import multer from 'multer';
 
 // Load environment variables from .env file
 dotenv.config({ path: '../.env' }); // Adjust path if necessary
@@ -33,6 +35,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/admin', adminRouter);
+app.use('/api', uploadRoutes); // Ensure this matches your frontend request
 
 const PORT = process.env.PORT || 5000;
 
