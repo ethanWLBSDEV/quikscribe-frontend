@@ -1,7 +1,8 @@
 import { S3Client } from '@aws-sdk/client-s3';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '../../.env' }); // Adjust path if necessary
+dotenv.config({ path: '../../.env' });
+
 export const s3Client = new S3Client({
   region: process.env.AWS_REGION,
   credentials: {

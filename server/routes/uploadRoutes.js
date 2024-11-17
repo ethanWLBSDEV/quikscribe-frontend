@@ -1,14 +1,17 @@
 import express from 'express';
 import multer from 'multer';
-import { uploadToS3 } from '../controllers/uploadController.js'; // Controller for S3 upload
+import { uploadToS3 } from '../controllers/uploadController.js';
+import { listQueueFiles } from '../controllers/queueController.js';
 
 const router = express.Router();
 
-// Set up multer storage (in-memory for this case)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Route to handle file upload to S3
+// Route for uploading files
 router.post('/upload', upload.single('file'), uploadToS3);
+
+// Route for listing files in the Queue
+router.get('/list', listQueueFiles);
 
 export default router;
