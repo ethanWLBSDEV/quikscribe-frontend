@@ -6,6 +6,13 @@ export const uploadToS3 = async (req, res) => {
     const file = req.file;
     const fileStream = file.buffer;
 
+    // Ensure the user is authenticated and has the email in the token
+    if (!req.user || !req.user.email) {
+      return res.status(401).json({ message: 'Unauthorized: User email missing' });
+    }
+
+    const userEmail = req.user.email; // User's email from the token
+
     // Check existing files in the Queue folder
     const listParams = {
       Bucket: process.env.AWS_BUCKET_NAME,
@@ -26,8 +33,10 @@ export const uploadToS3 = async (req, res) => {
       ContentType: file.mimetype,
       Metadata: {
         'queue-number': queueNumber.toString(),
+        'uploaded-by': userEmail.toLowerCase(), // Ensure it's stored consistently
       },
     };
+
     const uploadCommand = new PutObjectCommand(uploadParams);
     await s3Client.send(uploadCommand);
 

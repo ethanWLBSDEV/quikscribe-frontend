@@ -89,16 +89,22 @@ router.post('/signin', (req, res) => {
 
     const user = results[0];
     const isValidPassword = await bcrypt.compare(password, user.password);
-    
+
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Generate JWT token and send user type in response
-    const token = jwt.sign({ id: user.id, type: user.type }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token, type: user.type });  // Include user type in response
+    const token = jwt.sign(
+      { id: user.id, type: user.type, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' } // Set a new token expiration
+    );
+    console.log('Generated token:', token); // Log the generated token
+    res.json({ token, type: user.type });
   });
 });
+
+
 
 
 

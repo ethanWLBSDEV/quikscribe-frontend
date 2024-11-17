@@ -9,7 +9,7 @@ export default function Navbar() {
   // This effect will run on component mount or after the token is set/removed
   useEffect(() => {
     const token = localStorage.getItem('jwtToken');  // Check for 'jwtToken' key
-    console.log('Token from localStorage:', token);
+    console.log('Token from localStorage Navbar tsx:', token);
 
     // Update login status based on token presence
     if (token) {

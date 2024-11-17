@@ -3,14 +3,19 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import dotenv from 'dotenv';
 import adminRouter from './routes/adminRouter.js';
-import { S3Client, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { EC2Client, StartInstancesCommand, StopInstancesCommand } from '@aws-sdk/client-ec2';
 import uploadRoutes from './routes/uploadRoutes.js';
+import authenticateToken from './middleware/authMiddleware.js';
+import multer from 'multer';
 
 // Load environment variables from .env file
-dotenv.config({ path: '../.env' });
+dotenv.config({ path: '../.env' }); // Adjust path if necessary
 
 const app = express();
+
+console.log('JWT_SECRET:', process.env.JWT_SECRET);
+
 
 // Set up AWS SDK clients
 const s3Client = new S3Client({
@@ -29,16 +34,18 @@ const ec2Client = new EC2Client({
   },
 });
 
+// Middleware and routes
 app.use(cors());
 app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/admin', adminRouter);
 app.use('/api', uploadRoutes);
 
+
 const PORT = process.env.PORT || 5000;
 
-console.log('Bucket name:', process.env.AWS_BUCKET_NAME);
-console.log('EC2 instance ID:', process.env.EC2_INSTANCE_ID);
+console.log('Bucket name:', process.env.AWS_BUCKET_NAME);  // Logs the bucket name
+console.log('EC2 instance ID:', process.env.EC2_INSTANCE_ID);  // Logs the EC2 instance ID
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
@@ -49,12 +56,14 @@ const checkQueue = async () => {
   try {
     const params = {
       Bucket: process.env.AWS_BUCKET_NAME,
-      Prefix: 'Queue/',
+      Prefix: 'Queue/', // Looking inside the Queue folder
     };
 
     const command = new ListObjectsV2Command(params);
     const data = await s3Client.send(command);
+    // console.log('S3 Response:', data);  // Logs the full response from S3
 
+    // Filter for items that are actual files (size > 0)
     const validItems = data.Contents?.filter(item => item.Size > 0);
 
     if (validItems && validItems.length > 0) {
@@ -70,7 +79,7 @@ const checkQueue = async () => {
   }
 };
 
-// Functions to control EC2 instance
+// Function to start EC2 instance
 const startEC2Instance = async () => {
   const params = { InstanceIds: [process.env.EC2_INSTANCE_ID] };
   const command = new StartInstancesCommand(params);
@@ -82,6 +91,7 @@ const startEC2Instance = async () => {
   }
 };
 
+// Function to stop EC2 instance
 const stopEC2Instance = async () => {
   const params = { InstanceIds: [process.env.EC2_INSTANCE_ID] };
   const command = new StopInstancesCommand(params);
@@ -94,29 +104,20 @@ const stopEC2Instance = async () => {
 };
 
 // Monitor the Queue folder and control the EC2 instance
-let isMonitoring = false;
 const monitorQueueAndControlEC2 = async () => {
-  if (isMonitoring) return;
-  isMonitoring = true;
+  const hasItemsInQueue = await checkQueue();
 
-  try {
-    const hasItemsInQueue = await checkQueue();
-    if (hasItemsInQueue) {
-      await startEC2Instance();
-    } else {
-      await stopEC2Instance();
-    }
-  } catch (error) {
-    console.error("Error in monitoring EC2 and Queue:", error);
-  } finally {
-    isMonitoring = false;
+  if (hasItemsInQueue) {
+    // If there are items in the Queue, ensure EC2 is running
+    await startEC2Instance();
+  } else {
+    // If no items in the Queue, stop EC2 instance
+    await stopEC2Instance();
   }
 };
 
-// Call the monitoring function periodically
+// Call the monitoring function (it can run periodically with setInterval)
 monitorQueueAndControlEC2();
-setInterval(monitorQueueAndControlEC2, 60000);
 
-app.get('/health', (req, res) => {
-  res.status(200).send('Server is running');
-});
+// Set an interval to monitor the Queue folder every 60 seconds
+setInterval(monitorQueueAndControlEC2, 60000); // Check every 60 seconds
